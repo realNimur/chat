@@ -4,7 +4,7 @@ import {Button, Container, Grid, TextField} from "@mui/material";
 import {useCollectionData} from "react-firebase-hooks/firestore";
 import Loader from "./Loader";
 import {useAuthState} from "react-firebase-hooks/auth";
-import {addDoc, collection, serverTimestamp} from "firebase/firestore";
+import {addDoc, collection, orderBy, query, serverTimestamp} from "firebase/firestore";
 import Message from "./Message";
 
 const Chat = () => {
@@ -12,12 +12,13 @@ const Chat = () => {
     const [user] = useAuthState(auth);
     const [value, setValue] = useState('');
     const [messages, loading] = useCollectionData(
-        collection(firestore, 'messages')
+        query(collection(firestore, 'messages'), orderBy('createdAt'))
     );
 
     const sendMessage = async () => {
         if (user) {
             const {uid, displayName, photoURL} = user;
+
             await addDoc(collection(firestore, "messages"), {
                 uid,
                 displayName,
@@ -43,14 +44,16 @@ const Chat = () => {
                     marginTop: '20px',
                     marginBottom: '20px'
                 }}>
-                    {messages?.map(message =>
-                        <Message
+                    {messages?.map((message, item) => {
+                        return <Message
                             ownMessage={message.uid === (user && user.uid)}
-                            key={message.uid}
+                            key={item}
                             photoURL={message.photoURL}
                             displayName={message.displayName}
                             text={message.text}
-                        />)}
+                            dateCreate={new Date(message.createdAt?.seconds * 1000).toUTCString()}
+                        />
+                    })}
                 </div>
                 <Grid
                     container
@@ -65,6 +68,7 @@ const Chat = () => {
                         variant={'outlined'}
                         value={value}
                         onChange={(e) => setValue(e.target.value)}
+                        sx={{ mb: "5px" }}
                     />
                     <Button
                         variant={'outlined'}
